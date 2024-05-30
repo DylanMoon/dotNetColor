@@ -5,10 +5,9 @@ namespace dotNetColor;
 public static class RgbExtensions
 {
     /// <summary>
-    /// RGB values MUST be scaled:<code>
+    /// RGB values MUST be in the following bounds:<code>
     /// r,g,b -> [0,1]</code>
     /// </summary>
-    /// <param name="rgb"></param>
     /// <returns>return values will be in the ranges:<code>
     /// h -> [0,360)
     /// s -> [0,1]
@@ -23,16 +22,15 @@ public static class RgbExtensions
     }
 
     /// <summary>
-    /// RGB values MUST be scaled:<code>
+    /// RGB values MUST be in the following bounds:<code>
     /// r,g,b -&gt; [0,1] </code>
     /// </summary>
-    /// <param name="rgb"></param>
     /// <returns></returns>
     public static Hsl ToHsl(this Rgb rgb)
     {
         var xMax = Math.Max(rgb.Red, Math.Max(rgb.Green, rgb.Blue));
         var xMin = Math.Min(rgb.Red, Math.Min(rgb.Green, rgb.Blue));
-        var lightness = (xMax + xMin) / 2d;   
+        var lightness = (xMax + xMin) / 2d;
         return new Hsl(rgb.GetHue(xMax - xMin, xMax), Math.Abs(lightness - 1d) < Tolerance || lightness == 0d
             ? 0d
             : (xMax - lightness) / Math.Min(lightness, 1d - lightness), lightness);
@@ -46,12 +44,24 @@ public static class RgbExtensions
             var hue = 60d * ((rgb.Green - rgb.Blue) / chroma % 6d);
             return hue < 0d ? 360d + hue : hue;
         }
+
         if (Math.Abs(xMax - rgb.Green) < Tolerance) return 60d * ((rgb.Blue - rgb.Red) / chroma + 2d);
         return 60d * ((rgb.Red - rgb.Green) / chroma + 4d);
     }
-        
-    public static Rgb Scale(this Rgb rgb, double scaler) =>
-        new Rgb(rgb.Red * scaler, rgb.Green * scaler, rgb.Blue * scaler);
+
+    public static Rgb Scale(this Rgb rgb, params IScaler[] scalers) =>
+        rgb.Scale(scalers.AsEnumerable());
+
+    public static Rgb Scale(this Rgb rgb, IEnumerable<IScaler> scalers) =>
+        scalers.Aggregate(rgb, (rgbAcc, scaler) => rgbAcc.ApplyScaler(scaler));
+
+    private static Rgb ApplyScaler(this Rgb rgb, IScaler scaler) => scaler switch
+    {
+        RedScaler redScaler => rgb with {Red = rgb.Red.Value * redScaler.Value},
+        GreenScaler greenScaler => rgb with {Green = rgb.Green.Value * greenScaler.Value},
+        BlueScaler blueScaler => rgb with {Blue = rgb.Blue.Value * blueScaler.Value},
+        _ => rgb,
+    };
 
     public static Rgb Round(this Rgb rgb) =>
         new Rgb(Math.Round(rgb.Red), Math.Round(rgb.Green), Math.Round(rgb.Blue));

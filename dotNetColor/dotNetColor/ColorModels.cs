@@ -1,9 +1,8 @@
-using static dotNetColor.Constants;
 namespace dotNetColor;
 
-public record struct Hsl(double Hue, double Saturation, double Lightness);
+public readonly record struct Hsl(Hue Hue, Saturation Saturation, Lightness Lightness);
 
-public record struct Hsv(double Hue, double Saturation, double Value);
+public readonly record struct Hsv(Hue Hue, Saturation Saturation, Value Value);
 
-public record struct Rgb(double Red, double Green, double Blue);
+public readonly record struct Rgb(Red Red, Green Green, Blue Blue);
 

@@ -6,7 +6,7 @@ namespace dotNetColor.Tests;
 
 public class Tests
 {
-     private readonly ITestOutputHelper _testOutputHelper;
+    private readonly ITestOutputHelper _testOutputHelper;
 
     public Tests(ITestOutputHelper testOutputHelper) =>
         _testOutputHelper = testOutputHelper;
@@ -57,8 +57,9 @@ public class Tests
     public void TestHsvConversions(string colorName, Hsv hsv, Hsl hsl, Rgb rgb)
     {
         // convert hsv to rgb and hsl
-        Assert.Equal(rgb, hsv.Scale(Scalar360, Scalar1, Scalar1).ToRgb(), new RgbComparer());
-        Assert.Equal(hsl, hsv.Scale(Scalar360, Scalar1, Scalar1).ToHsl().Scale(Scalar1Over360, Scalar1, Scalar1), new HslComparer());
+        Assert.Equal(rgb, hsv.Scale(new HueScaler(Scalar360)).ToRgb(), new RgbComparer());
+        Assert.Equal(hsl, hsv.Scale(new HueScaler(Scalar360)).ToHsl().Scale(new HueScaler(Scalar1Over360)),
+            new HslComparer());
     }
 
     [Theory]
@@ -66,8 +67,9 @@ public class Tests
     public void TestHslConversions(string colorName, Hsv hsv, Hsl hsl, Rgb rgb)
     {
         //convert hsl to hsv and rgb
-        Assert.Equal(hsv, hsl.Scale(Scalar360, Scalar1, Scalar1).ToHsv().Scale(Scalar1Over360, Scalar1, Scalar1), new HsvComparer());
-        Assert.Equal(rgb, hsl.Scale(Scalar360, Scalar1, Scalar1).ToRgb(), new RgbComparer());
+        Assert.Equal(hsv, hsl.Scale(new HueScaler(Scalar360)).ToHsv().Scale(new HueScaler(Scalar1Over360)),
+            new HsvComparer());
+        Assert.Equal(rgb, hsl.Scale(new HueScaler(Scalar360)).ToRgb(), new RgbComparer());
     }
 
     [Theory]
@@ -75,20 +77,45 @@ public class Tests
     public void TestRgbConversions(string colorName, Hsv hsv, Hsl hsl, Rgb rgb)
     {
         //convert rgb to hsv and hsl
-        Assert.Equal(hsv, rgb.ToHsv().Scale(Scalar1Over360, Scalar1, Scalar1), new HsvComparer());
-        Assert.Equal(hsl, rgb.ToHsl().Scale(Scalar1Over360, Scalar1, Scalar1), new HslComparer());
+        Assert.Equal(hsv, rgb.ToHsv().Scale(new HueScaler(Scalar1Over360)), new HsvComparer());
+        Assert.Equal(hsl, rgb.ToHsl().Scale(new HueScaler(Scalar1Over360)), new HslComparer());
     }
 
+    [Fact]
+    public void ScalerOrderDoesntMatter()
+    {
+        var rand = new Random();
+        var hsv = new Hsv(rand.NextDouble(), rand.NextDouble(), rand.NextDouble());
+        Assert.Equal(hsv.Scale(new HueScaler(100), new SaturationScaler(100), new ValueScaler(100)),
+            hsv.Scale(new ValueScaler(100), new SaturationScaler(100), new HueScaler(100)));
+
+        var hsl = new Hsl(rand.NextDouble(), rand.NextDouble(), rand.NextDouble());
+        Assert.Equal(hsl.Scale(new HueScaler(100), new SaturationScaler(100), new LightnessScaler(100)),
+            hsl.Scale(new LightnessScaler(100), new SaturationScaler(100), new HueScaler(100)));
+
+        var rgb = new Rgb(rand.NextDouble(), rand.NextDouble(), rand.NextDouble());
+        Assert.Equal(rgb.Scale(new RedScaler(100), new GreenScaler(100), new BlueScaler(100)),
+            rgb.Scale(new BlueScaler(100), new GreenScaler(100), new RedScaler(100)));
+    }
+
+    [Fact]
+    public void WrongScalersAreIgnored()
+    {
+        var rand = new Random();
+        var hsv = new Hsv(rand.NextDouble(), rand.NextDouble(), rand.NextDouble());
+        Assert.Equal(hsv.Scale(new RedScaler(100), new GreenScaler(100), new BlueScaler(100), new LightnessScaler(100)),
+            hsv.Scale(new LightnessScaler(100), new BlueScaler(100), new GreenScaler(100), new RedScaler(100)));
+    }
 
     [Fact]
     public void ColorTestRed0()
     {
         var initialHsv = new Hsv(0, 1, 1);
-        var scaledHsv = initialHsv.Scale(360, 1d, 1d).RoundHue();
+        var scaledHsv = initialHsv.Scale(new HueScaler(360)).RoundHue();
         Assert.Equal(new Hsv(0, 1, 1), scaledHsv);
         var initialRgb = scaledHsv.ToRgb();
         Assert.Equal(new Rgb(1, 0, 0), initialRgb);
-        var scaledRgb = initialRgb.Scale(255).Round();
+        var scaledRgb = initialRgb.Scale(new RedScaler(255), new GreenScaler(255), new BlueScaler(255)).Round();
         Assert.Equal(new Rgb(255, 0, 0), scaledRgb);
     }
 
@@ -96,11 +123,11 @@ public class Tests
     public void ColorTestRed360()
     {
         var initialHsv = new Hsv(1, 1, 1);
-        var scaledHsv = initialHsv.Scale(360, 1d, 1d).RoundHue();
+        var scaledHsv = initialHsv.Scale(new HueScaler(360)).RoundHue();
         Assert.Equal(new Hsv(360, 1, 1), scaledHsv);
         var initialRgb = scaledHsv.ToRgb();
         Assert.Equal(new Rgb(1, 0, 0), initialRgb);
-        var scaledRgb = initialRgb.Scale(255).Round();
+        var scaledRgb = initialRgb.Scale(new RedScaler(255), new GreenScaler(255), new BlueScaler(255)).Round();
         Assert.Equal(new Rgb(255, 0, 0), scaledRgb);
     }
 
@@ -108,11 +135,11 @@ public class Tests
     public void ColorTestGreen()
     {
         var initialHsv = new Hsv(0.333333333333, 1, 1);
-        var scaledHsv = initialHsv.Scale(360, 1d, 1d).RoundHue();
+        var scaledHsv = initialHsv.Scale(new HueScaler(360)).RoundHue();
         Assert.Equal(new Hsv(120, 1, 1), scaledHsv);
         var initialRgb = scaledHsv.ToRgb();
         Assert.Equal(new Rgb(0, 1, 0), initialRgb);
-        var scaledRgb = initialRgb.Scale(255).Round();
+        var scaledRgb = initialRgb.Scale(new RedScaler(255), new GreenScaler(255), new BlueScaler(255)).Round();
         Assert.Equal(new Rgb(0, 255, 0), scaledRgb);
     }
 
@@ -120,11 +147,11 @@ public class Tests
     public void ColorTestBlue()
     {
         var initialHsv = new Hsv(.66666666666, 1, 1);
-        var scaledHsv = initialHsv.Scale(360, 1d, 1d).RoundHue();
+        var scaledHsv = initialHsv.Scale(new HueScaler(360)).RoundHue();
         Assert.Equal(new Hsv(240, 1, 1), scaledHsv);
         var initialRgb = scaledHsv.ToRgb();
         Assert.Equal(new Rgb(0, 0, 1), initialRgb);
-        var scaledRgb = initialRgb.Scale(255).Round();
+        var scaledRgb = initialRgb.Scale(new RedScaler(255), new GreenScaler(255), new BlueScaler(255)).Round();
         Assert.Equal(new Rgb(0, 0, 255), scaledRgb);
     }
 
@@ -132,11 +159,11 @@ public class Tests
     public void ColorTest0Saturation()
     {
         var initialHsv = new Hsv(0, 0, 1);
-        var scaledHsv = initialHsv.Scale(360, 1d, 1d).RoundHue();
+        var scaledHsv = initialHsv.Scale(new HueScaler(360)).RoundHue();
         Assert.Equal(new Hsv(0, 0, 1), scaledHsv);
         var initialRgb = scaledHsv.ToRgb();
         Assert.Equal(new Rgb(1, 1, 1), initialRgb);
-        var scaledRgb = initialRgb.Scale(255).Round();
+        var scaledRgb = initialRgb.Scale(new RedScaler(255), new GreenScaler(255), new BlueScaler(255)).Round();
         Assert.Equal(new Rgb(255, 255, 255), scaledRgb);
     }
 
@@ -144,11 +171,11 @@ public class Tests
     public void ColorTest50Saturation()
     {
         var initialHsv = new Hsv(0, .5, 1);
-        var scaledHsv = initialHsv.Scale(360d, 1d, 1d).RoundHue();
+        var scaledHsv = initialHsv.Scale(new HueScaler(360d)).RoundHue();
         Assert.Equal(new Hsv(0, .5, 1), scaledHsv);
         var initialRgb = scaledHsv.ToRgb();
         Assert.Equal(new Rgb(1, .5, .5), initialRgb);
-        var scaledRgb = initialRgb.Scale(255).Round();
+        var scaledRgb = initialRgb.Scale(new RedScaler(255), new GreenScaler(255), new BlueScaler(255)).Round();
         Assert.Equal(new Rgb(255, 128, 128), scaledRgb);
     }
 }

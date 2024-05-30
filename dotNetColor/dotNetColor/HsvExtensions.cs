@@ -5,7 +5,7 @@ namespace dotNetColor;
 public static class HsvExtensions
 {
     /// <summary>
-    /// HSV values MUST be scaled:<code>
+    /// HSV values MUST be in the following bounds:<code>
     /// h -&gt; [0,360),
     /// s -&gt; [0,1],
     /// v -&gt; [0,1]</code>
@@ -24,7 +24,7 @@ public static class HsvExtensions
     }
 
     /// <summary>
-    /// HSV values MUST be scaled:<code>
+    /// HSV values MUST be in the following bounds:<code>
     /// h -&gt; [0,360),
     /// s -&gt; [0,1],
     /// v -&gt; [0,1]</code>
@@ -37,7 +37,7 @@ public static class HsvExtensions
         return new Hsl(hsv.Hue,
             IsOneOrZero(lightness) ? 0d : (hsv.Value - lightness) / Math.Min(lightness, 1d - lightness), lightness);
 
-        double L(double saturation, double value) => value * (1d - saturation / 2d);
+        Lightness L(double saturation, double value) => value * (1d - saturation / 2d);
 
         bool IsOneOrZero(double value)
         {
@@ -45,9 +45,20 @@ public static class HsvExtensions
         }
     }
 
-    public static Hsv Scale(this Hsv hsv, double hueScaler, double saturationScaler, double valueScaler) =>
-        new Hsv(hsv.Hue * hueScaler, hsv.Saturation * saturationScaler, hsv.Value * valueScaler);
+    public static Hsv Scale(this Hsv hsv, params IScaler[] scalers) =>
+        hsv.Scale(scalers.AsEnumerable());
+    
+    public static Hsv Scale(this Hsv hsv, IEnumerable<IScaler> scalers) =>
+        scalers.Aggregate(hsv, (hsvAcc, scaler) => hsvAcc.ApplyScaler(scaler));
 
+    private static Hsv ApplyScaler(this Hsv hsv, IScaler scaler) => scaler switch
+    {
+        HueScaler hueScaler => hsv with {Hue = hsv.Hue.Value * hueScaler.Value},
+        SaturationScaler saturationScaler => hsv with {Saturation = hsv.Saturation.Value * saturationScaler.Value},
+        ValueScaler valueScaler => hsv with {Value = hsv.Value.Val * valueScaler.Value},
+        _ => hsv,
+    };
+    
     public static Hsv Round(this Hsv hsv) =>
         new Hsv(Math.Round(hsv.Hue), Math.Round(hsv.Saturation), Math.Round(hsv.Value));
 
