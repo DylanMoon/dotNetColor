@@ -34,5 +34,8 @@ var System2_To_System1 = Converters.ScaleRgb(
         new HueScaler(1/360d)
     );
 ```
+The above code snippet will return a mapping function with the signature Rgb -> Hsv.
+
+
 
 The resulting structures can be either deconstructed or each value accessed directly.
