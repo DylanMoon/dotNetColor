@@ -398,3 +398,5 @@ FodyWeavers.xsd
 *.sln.iml
 
 dotNetColor/.idea/.idea.dotNetColor/.idea/
+
+dotNetColor/ConsoleApp1/
