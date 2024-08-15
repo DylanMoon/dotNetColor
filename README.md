@@ -36,6 +36,20 @@ var System2_To_System1 = Converters.ScaleRgb(
 ```
 The above code snippet will return a mapping function with the signature Rgb -> Hsv.
 
-
+An example of usage would be:
+```cpp
+var input = new Hsv(0,1,1);
+var output = System1_To_System2(input);
+// can also optionally call: 
+// var output = System1_To_System2?.Invoke(input);
+```
+In the above example output would be equal to:
+```cpp
+Rgb {Red = Red {Value = 255}, Green = Green {Value = 0}, Blue = Blue {Value = 0}}
+```
 
 The resulting structures can be either deconstructed or each value accessed directly.
+```cpp
+var (red, green, blue) = output;
+```
+In the above code, red, green, and blue can now be accessed individually and each includes an implicit conversion to double
